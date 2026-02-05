@@ -40,7 +40,7 @@ Ce document concerne le repository **`momentum-companion`** (polyrepo Android). 
 - **FR8**: L'ecran principal affiche : statut de connexion, dernier sync, et les 3 anneaux du jour (pas/activite/calories)
 - **FR9**: L'ecran de configuration permet de saisir : URL de l'API Momentum, email, mot de passe
 - **FR10**: L'app demande les permissions Health Connect au premier lancement avec explication claire
-- **FR11**: L'API Momentum expose un endpoint bulk `/api/v1/health-sync` qui recoit les donnees de sante *(implemented in momentum repo)*
+- **FR11**: L'API Momentum expose un endpoint bulk `/health-sync` qui recoit les donnees de sante *(implemented in momentum repo)*
 - **FR12**: L'API Momentum cree automatiquement les TrackableItems systeme (pas, activite, calories, sommeil) s'ils n'existent pas *(implemented in momentum repo)*
 - **FR13**: L'API Momentum stocke les activites/entrainements Health Connect dans un modele dedie `HealthActivity` *(implemented in momentum repo)*
 - **FR14**: Les DailyEntry creees par la sync sont marquees `source: "health_connect"` pour les distinguer des saisies manuelles *(implemented in momentum repo)*
@@ -112,7 +112,7 @@ Health Connect (on-device)
      v
 Momentum Companion App (Android)        <-- THIS REPO
      |
-     | (HTTP POST /api/v1/health-sync)
+     | (HTTP POST /health-sync)
      v
 Momentum API (Express.js)               <-- momentum repo
      |
@@ -132,7 +132,7 @@ Momentum Web (Next.js PWA)
 | `StepsRecord` | Aggregate par jour | Total pas du jour | Pas | pas |
 | `ActiveCaloriesBurnedRecord` | Aggregate par jour | Total kcal actives du jour | Calories actives | kcal |
 | `ExerciseSessionRecord` | Liste sessions du jour | Somme des durees | Minutes d'activite | min |
-| `SleepSessionRecord` | Session de nuit | Score (si dispo) ou duree | Score sommeil | score/min |
+| `SleepSessionRecord` | Session de nuit | Duree totale | Durée sommeil | min |
 | `ExerciseSessionRecord` | Liste detaillee | Type, duree, calories, distance | HealthActivity (modele dedie) | - |
 
 ### Sync Strategy
@@ -247,7 +247,7 @@ const HEALTH_CONNECT_TRACKABLES = [
     defaultGoal: { targetValue: 500, frequency: "daily" },
   },
   {
-    name: "Score sommeil",
+    name: "Durée sommeil",
     icon: "moon",
     color: "#8B5CF6",      // purple
     trackingType: "number",
@@ -277,7 +277,7 @@ model User {
 
 > **Note** : Ces endpoints sont implementes dans le monorepo `momentum`. Ils sont documentes ici integralement car le developpeur Android doit connaitre les contrats d'API pour implementer le client HTTP.
 
-### 6.1 Endpoint : `POST /api/v1/health-sync`
+### 6.1 Endpoint : `POST /health-sync`
 
 Endpoint principal appele par le companion. Recoit un batch de donnees de sante pour une plage de dates.
 
@@ -371,7 +371,7 @@ interface HealthSyncResponse {
 6. Retourner le recap
 ```
 
-### 6.2 Endpoint : `GET /api/v1/health-sync/status`
+### 6.2 Endpoint : `GET /health-sync/status`
 
 Permet au companion de verifier la config et le dernier sync.
 
@@ -386,12 +386,12 @@ Permet au companion de verifier la config et le dernier sync.
     "steps": { "id": "uuid", "goalValue": 10000 },
     "activeCalories": { "id": "uuid", "goalValue": 500 },
     "activeMinutes": { "id": "uuid", "goalValue": 90 },
-    "sleepScore": { "id": "uuid", "goalValue": null }
+    "sleepDuration": { "id": "uuid", "goalValue": null }
   }
 }
 ```
 
-### 6.3 Endpoint : `GET /api/v1/health-activities`
+### 6.3 Endpoint : `GET /health-sync/activities`
 
 Liste les activites synchronisees.
 
@@ -750,7 +750,7 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 
 ---
 
-#### Story 1.2 : Endpoint POST /api/v1/health-sync *(momentum repo)*
+#### Story 1.2 : Endpoint POST /health-sync *(momentum repo)*
 
 **En tant que** app companion Android,
 **je veux** envoyer un batch de donnees de sante (metriques journalieres + activites + sommeil) en un seul appel API,
@@ -758,12 +758,12 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 
 **Acceptance Criteria :**
 
-1. L'endpoint `POST /api/v1/health-sync` accepte le payload `HealthSyncRequest` tel que specifie en section 6.1
+1. L'endpoint `POST /health-sync` accepte le payload `HealthSyncRequest` tel que specifie en section 6.1
 2. Le payload est valide par un schema Zod (tous les champs obligatoires presents, dates valides, valeurs positives)
-3. Les TrackableItems systeme (Pas, Minutes d'activite, Calories actives, Score sommeil) sont crees automatiquement pour l'utilisateur s'ils n'existent pas encore (creation lazy avec les valeurs de la section 5.1)
+3. Les TrackableItems systeme (Pas, Minutes d'activite, Calories actives, Durée sommeil) sont crees automatiquement pour l'utilisateur s'ils n'existent pas encore (creation lazy avec les valeurs de la section 5.1)
 4. Les DailyEntry sont upsertees sur la contrainte `(trackableId, date)` avec `source = "health_connect"`
 5. Les HealthActivity sont upsertees sur la contrainte `(userId, hcRecordId)`
-6. Les SleepRecord sont transformes en DailyEntry pour le trackable "Score sommeil" (valeur = score si disponible, sinon duree en minutes)
+6. Les SleepRecord sont transformes en DailyEntry pour le trackable "Durée sommeil" (valeur = duree en minutes)
 7. Le SyncDevice est upserte avec le `deviceName` et `lastSyncAt`
 8. La reponse inclut le nombre de records upserted par categorie
 9. En cas de payload invalide, retourner 400 avec les details d'erreur Zod
@@ -779,8 +779,8 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 
 **Acceptance Criteria :**
 
-1. L'endpoint `GET /api/v1/health-sync/status` retourne la config du sync pour l'utilisateur (derniere sync, trackables avec IDs et goals)
-2. L'endpoint `GET /api/v1/health-activities` retourne la liste paginee des activites de l'utilisateur
+1. L'endpoint `GET /health-sync/status` retourne la config du sync pour l'utilisateur (derniere sync, trackables avec IDs et goals)
+2. L'endpoint `GET /health-sync/activities` retourne la liste paginee des activites de l'utilisateur
 3. Les query params `from`, `to`, `activityType`, `limit`, `offset` sont supportes
 4. Les endpoints sont proteges par authentification JWT
 5. Les reponses suivent le format standard de l'API Momentum (error codes, pagination)
@@ -803,7 +803,7 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 
 1. Le projet Android est initialise avec Kotlin, Jetpack Compose, Hilt, et le theme sombre
 2. L'ecran de setup (Screen 1) permet de saisir l'URL du serveur, l'email et le mot de passe
-3. Le bouton "Tester la connexion" appelle `POST /api/v1/auth/login` et affiche le resultat (succes/erreur)
+3. Le bouton "Tester la connexion" appelle `POST /auth/login` et affiche le resultat (succes/erreur)
 4. En cas de succes, le token JWT et les credentials sont stockes dans EncryptedSharedPreferences
 5. L'app gere le refresh de token JWT automatiquement
 6. L'URL du serveur accepte les certificats self-signed (option configurable) car le serveur est self-hosted
@@ -839,7 +839,7 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 
 1. Un `PeriodicWorkRequest` est enregistre via WorkManager avec l'intervalle configure (defaut 15 min)
 2. Le `SyncWorker` lit les donnees Health Connect depuis le dernier sync reussi
-3. Les donnees sont envoyees a l'endpoint `POST /api/v1/health-sync`
+3. Les donnees sont envoyees a l'endpoint `POST /health-sync`
 4. En cas de succes, le timestamp du dernier sync est mis a jour
 5. En cas d'erreur reseau, le worker retourne `Result.retry()` (max 3 tentatives avec backoff exponentiel)
 6. La frequence de sync est configurable dans les settings (15min, 30min, 1h, 2h)
@@ -857,7 +857,7 @@ Creer l'app Android companion avec la configuration, les permissions Health Conn
 **Acceptance Criteria :**
 
 1. L'ecran dashboard (Screen 3) affiche les 3 anneaux du jour (pas, minutes activite, calories) avec progression vers l'objectif
-2. Les objectifs sont recuperes depuis l'API Momentum (`GET /api/v1/health-sync/status`)
+2. Les objectifs sont recuperes depuis l'API Momentum (`GET /health-sync/status`)
 3. Les valeurs actuelles sont lues directement depuis Health Connect (pas d'appel API pour l'affichage local)
 4. Le statut de connexion et la date du dernier sync sont affiches
 5. Le bouton "Synchroniser maintenant" declenche un `OneTimeWorkRequest` immediat

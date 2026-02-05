@@ -53,7 +53,7 @@ This architecture covers the MVP implementation including:
 │                           └──────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────┘
                                         │
-                                        │ HTTPS POST /api/v1/health-sync
+                                        │ HTTPS POST /health-sync
                                         v
                             ┌───────────────────────┐
                             │    Momentum API        │
@@ -93,7 +93,7 @@ Momentum Companion App (Android)
      │ 3. Builds HealthSyncRequest DTO
      │ 4. Retrofit POSTs to API
      │
-     │ HTTP POST /api/v1/health-sync
+     │ HTTP POST /health-sync
      v
 Momentum API (Express.js)
      │
@@ -186,13 +186,13 @@ class HealthConnectReader @Inject constructor(
 
 // MomentumApiService acts as a "repository" for remote operations
 interface MomentumApiService {
-    @POST("api/v1/health-sync")
+    @POST("health-sync")
     suspend fun postHealthSync(@Body request: HealthSyncRequest): HealthSyncResponse
 
-    @GET("api/v1/health-sync/status")
+    @GET("health-sync/status")
     suspend fun getSyncStatus(): SyncStatusResponse
 
-    @POST("api/v1/auth/login")
+    @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 }
 ```
@@ -306,7 +306,7 @@ The app requests **read-only** permissions. It never writes to Health Connect.
 | `StepsRecord` | Total steps per day | Pas | steps |
 | `ActiveCaloriesBurnedRecord` | Total kcal per day | Calories actives | kcal |
 | `ExerciseSessionRecord` | Sum of durations per day | Minutes d'activite | min |
-| `SleepSessionRecord` | Score (if available) or duration | Score sommeil | score/min |
+| `SleepSessionRecord` | Total duration | Durée sommeil | min |
 | `ExerciseSessionRecord` (detailed) | Type, duration, calories, distance | HealthActivity (dedicated model) | - |
 
 ### 5.4 Sleep Score Handling
@@ -353,7 +353,7 @@ The companion aggregates Health Connect records into daily summaries before send
 
 ### 6.3 Batch POST
 
-A single `POST /api/v1/health-sync` call sends all data for the sync period:
+A single `POST /health-sync` call sends all data for the sync period:
 
 ```kotlin
 @Serializable
@@ -518,7 +518,7 @@ return try {
    - Email
    - Password
 4. User taps "Test Connection"
-   - App calls POST /api/v1/auth/login
+   - App calls POST /auth/login
    - On success: stores JWT + credentials in EncryptedSharedPreferences
    - On failure: shows error message
 5. User taps "Next"
@@ -550,7 +550,7 @@ return try {
       - Map exercise sessions to ActivityRecord
       - Map sleep sessions to SleepRecord
    f. Build HealthSyncRequest
-   g. POST /api/v1/health-sync
+   g. POST /health-sync
    h. On success:
       - Update lastSyncTimestamp
       - Log success + counts
@@ -589,7 +589,7 @@ return try {
 ```
 1. AuthInterceptor detects 401 response
 2. Reads stored email/password from EncryptedSharedPreferences
-3. Calls POST /api/v1/auth/login
+3. Calls POST /auth/login
 4. On success:
    - Stores new JWT token
    - Retries original request with new token
@@ -607,26 +607,26 @@ return try {
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `POST` | `/api/v1/auth/login` | Authenticate and obtain JWT |
-| `POST` | `/api/v1/health-sync` | Send batch health data |
-| `GET` | `/api/v1/health-sync/status` | Check sync status and get trackable goals |
+| `POST` | `/auth/login` | Authenticate and obtain JWT |
+| `POST` | `/health-sync` | Send batch health data |
+| `GET` | `/health-sync/status` | Check sync status and get trackable goals |
 
 ### 10.2 Retrofit Service Interface
 
 ```kotlin
 interface MomentumApiService {
 
-    @POST("api/v1/auth/login")
+    @POST("auth/login")
     suspend fun login(
         @Body request: LoginRequest,
     ): LoginResponse
 
-    @POST("api/v1/health-sync")
+    @POST("health-sync")
     suspend fun postHealthSync(
         @Body request: HealthSyncRequest,
     ): HealthSyncResponse
 
-    @GET("api/v1/health-sync/status")
+    @GET("health-sync/status")
     suspend fun getSyncStatus(): SyncStatusResponse
 }
 ```
