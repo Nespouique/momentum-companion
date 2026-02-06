@@ -3,19 +3,18 @@ package com.momentum.companion.data.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import javax.inject.Inject
-import javax.inject.Singleton
+import androidx.security.crypto.MasterKey
 
-@Singleton
-class AppPreferences @Inject constructor(context: Context) {
+class AppPreferences(context: Context) {
 
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
 
     private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
-        "momentum_companion_prefs",
-        masterKeyAlias,
         context,
+        "momentum_companion_prefs",
+        masterKey,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
     )

@@ -5,7 +5,6 @@
         <item>android.permission.health.READ_ACTIVE_CALORIES_BURNED</item>
         <item>android.permission.health.READ_EXERCISE</item>
         <item>android.permission.health.READ_SLEEP</item>
-        <item>android.permission.health.READ_HEART_RATE</item>
         <item>android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND</item>
         <item>android.permission.health.READ_HEALTH_DATA_HISTORY</item>
     </string-array>

@@ -98,7 +98,6 @@ dependencies {
 
     // Storage
     implementation(libs.security.crypto)
-    implementation(libs.datastore.preferences)
 
     // Testing
     testImplementation(libs.junit5)

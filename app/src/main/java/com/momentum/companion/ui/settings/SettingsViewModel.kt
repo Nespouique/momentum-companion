@@ -46,7 +46,7 @@ val SYNC_FREQUENCY_OPTIONS = listOf(
 class SettingsViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val syncScheduler: SyncScheduler,
-    private val healthConnectReader: HealthConnectReader,
+    private val healthConnectReader: HealthConnectReader?,
     private val apiService: MomentumApiService,
     private val syncLogRepository: SyncLogRepository,
 ) : ViewModel() {
@@ -95,19 +95,27 @@ class SettingsViewModel @Inject constructor(
             val endDate = LocalDate.now()
             val startDate = endDate.minusDays(30)
 
+            val reader = healthConnectReader ?: run {
+                _uiState.value = _uiState.value.copy(
+                    isImporting = false,
+                    error = "Health Connect non disponible",
+                )
+                return@launch
+            }
+
             try {
                 _uiState.value = _uiState.value.copy(importProgress = 0.1f)
 
-                val steps = healthConnectReader.readSteps(startDate, endDate)
+                val steps = reader.readSteps(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.3f)
 
-                val calories = healthConnectReader.readActiveCalories(startDate, endDate)
+                val calories = reader.readActiveCalories(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.5f)
 
-                val exercises = healthConnectReader.readExerciseSessions(startDate, endDate)
+                val exercises = reader.readExerciseSessions(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.6f)
 
-                val sleep = healthConnectReader.readSleepSessions(startDate, endDate)
+                val sleep = reader.readSleepSessions(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.7f)
 
                 val dailyMetrics = HealthConnectMapper.buildDailyMetrics(

@@ -10,15 +10,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SyncScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class SyncScheduler(private val context: Context) {
     private val workManager = WorkManager.getInstance(context)
 
     fun schedulePeriodic(intervalMinutes: Int = DEFAULT_INTERVAL) {

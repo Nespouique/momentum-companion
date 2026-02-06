@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,7 +42,6 @@ import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 
@@ -50,7 +50,6 @@ private val HEALTH_PERMISSIONS = setOf(
     HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
     HealthPermission.getReadPermission(ExerciseSessionRecord::class),
     HealthPermission.getReadPermission(SleepSessionRecord::class),
-    HealthPermission.getReadPermission(HeartRateRecord::class),
 )
 
 @Composable
@@ -58,7 +57,7 @@ fun PermissionsScreen(
     onPermissionsGranted: () -> Unit,
 ) {
     val context = LocalContext.current
-    var sdkStatus by remember { mutableStateOf(checkSdkStatus(context)) }
+    val sdkStatus = remember { checkSdkStatus(context) }
     var permissionsGranted by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(

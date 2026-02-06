@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,7 +25,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,7 +40,7 @@ fun SetupScreen(
     onSetupComplete: () -> Unit,
     viewModel: SetupViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.connectionTestResult) {
@@ -134,9 +136,10 @@ fun SetupScreen(
             ) {
                 if (uiState.isTestingConnection) {
                     CircularProgressIndicator(
-                        modifier = Modifier.padding(end = 8.dp),
+                        modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text("TESTER LA CONNEXION")
             }

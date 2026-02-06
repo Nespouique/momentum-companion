@@ -103,6 +103,25 @@ class SyncWorker @AssistedInject constructor(
 
             Log.d(TAG, "Sync successful")
             Result.success()
+        } catch (e: retrofit2.HttpException) {
+            Log.e(TAG, "Sync failed with HTTP ${e.code()}", e)
+            if (e.code() == 401) {
+                // Clear stale token so next retry triggers re-login
+                preferences.jwtToken = null
+            }
+            syncLogRepository.log(
+                SyncLogEntry(
+                    timestamp = System.currentTimeMillis(),
+                    type = SYNC_TYPE_PERIODIC,
+                    status = if (runAttemptCount < MAX_RETRY_COUNT) STATUS_RETRY else STATUS_ERROR,
+                    message = "Sync failed (HTTP ${e.code()}): ${e.message}",
+                ),
+            )
+            if (runAttemptCount < MAX_RETRY_COUNT) {
+                Result.retry()
+            } else {
+                Result.failure()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed", e)
             syncLogRepository.log(

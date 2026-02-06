@@ -11,13 +11,8 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class HealthConnectReader @Inject constructor(
-    private val client: HealthConnectClient,
-) {
+class HealthConnectReader(private val client: HealthConnectClient) {
 
     /**
      * Aggregate steps per day over a date range.

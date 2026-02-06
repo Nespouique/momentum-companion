@@ -1,6 +1,5 @@
 package com.momentum.companion.ui.dashboard
 
-import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.momentum.companion.data.api.MomentumApiService
@@ -44,7 +43,7 @@ data class TodayActivity(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val healthConnectReader: HealthConnectReader,
+    private val healthConnectReader: HealthConnectReader?,
     private val apiService: MomentumApiService,
     private val preferences: AppPreferences,
     private val syncScheduler: SyncScheduler,
@@ -109,18 +108,24 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadHealthConnectData() {
+        val reader = healthConnectReader ?: run {
+            _uiState.value = _uiState.value.copy(
+                error = "Health Connect non disponible sur cet appareil",
+            )
+            return
+        }
         try {
             val today = LocalDate.now()
             val zone = ZoneId.systemDefault()
             val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-            val steps = healthConnectReader.readSteps(today, today)
+            val steps = reader.readSteps(today, today)
             val todaySteps = steps[today]?.toInt() ?: 0
 
-            val calories = healthConnectReader.readActiveCalories(today, today)
+            val calories = reader.readActiveCalories(today, today)
             val todayCalories = calories[today]?.toInt() ?: 0
 
-            val exercises = healthConnectReader.readExerciseSessions(today, today)
+            val exercises = reader.readExerciseSessions(today, today)
             val todayMinutes = exercises.sumOf { session ->
                 Duration.between(session.startTime, session.endTime).toMinutes()
             }.toInt()

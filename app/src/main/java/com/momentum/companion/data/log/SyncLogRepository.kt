@@ -1,17 +1,11 @@
 package com.momentum.companion.data.log
 
 import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SyncLogRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class SyncLogRepository(private val context: Context) {
     private val logFile: File
         get() = File(context.filesDir, LOG_FILE_NAME)
 
