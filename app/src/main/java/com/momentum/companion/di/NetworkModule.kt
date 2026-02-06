@@ -1,6 +1,7 @@
 package com.momentum.companion.di
 
 import com.momentum.companion.data.api.AuthInterceptor
+import com.momentum.companion.data.api.DynamicBaseUrlInterceptor
 import com.momentum.companion.data.api.MomentumApiService
 import com.momentum.companion.data.preferences.AppPreferences
 import dagger.Module
@@ -39,8 +40,10 @@ object NetworkModule {
     fun provideOkHttpClient(
         preferences: AppPreferences,
         authInterceptor: AuthInterceptor,
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
+            .addInterceptor(dynamicBaseUrlInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
@@ -83,15 +86,10 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(
         client: OkHttpClient,
-        preferences: AppPreferences,
         json: Json,
     ): Retrofit {
-        val baseUrl = preferences.serverUrl?.let {
-            if (it.endsWith("/")) it else "$it/"
-        } ?: "https://localhost:3001/"
-
         return Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl("https://placeholder.local/")
             .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

@@ -18,19 +18,18 @@ class HealthConnectReader(private val client: HealthConnectClient) {
      * Aggregate steps per day over a date range.
      */
     suspend fun readSteps(start: LocalDate, end: LocalDate): Map<LocalDate, Long> {
-        val zone = ZoneId.systemDefault()
         val result = client.aggregateGroupByPeriod(
             AggregateGroupByPeriodRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
                 timeRangeFilter = TimeRangeFilter.between(
-                    start.atStartOfDay(zone).toInstant(),
-                    end.plusDays(1).atStartOfDay(zone).toInstant(),
+                    start.atStartOfDay(),
+                    end.plusDays(1).atStartOfDay(),
                 ),
                 timeRangeSlicer = Period.ofDays(1),
             ),
         )
         return result.associate { bucket ->
-            bucket.startTime.atZone(zone).toLocalDate() to
+            bucket.startTime.toLocalDate() to
                 (bucket.result[StepsRecord.COUNT_TOTAL] ?: 0L)
         }
     }
@@ -39,19 +38,18 @@ class HealthConnectReader(private val client: HealthConnectClient) {
      * Aggregate active calories burned per day (kcal).
      */
     suspend fun readActiveCalories(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val zone = ZoneId.systemDefault()
         val result = client.aggregateGroupByPeriod(
             AggregateGroupByPeriodRequest(
                 metrics = setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
                 timeRangeFilter = TimeRangeFilter.between(
-                    start.atStartOfDay(zone).toInstant(),
-                    end.plusDays(1).atStartOfDay(zone).toInstant(),
+                    start.atStartOfDay(),
+                    end.plusDays(1).atStartOfDay(),
                 ),
                 timeRangeSlicer = Period.ofDays(1),
             ),
         )
         return result.associate { bucket ->
-            bucket.startTime.atZone(zone).toLocalDate() to
+            bucket.startTime.toLocalDate() to
                 (bucket.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]
                     ?.inKilocalories ?: 0.0)
         }
