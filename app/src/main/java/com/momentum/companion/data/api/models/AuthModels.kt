@@ -1,5 +1,6 @@
 package com.momentum.companion.data.api.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,8 +11,9 @@ data class LoginRequest(
 
 @Serializable
 data class LoginResponse(
-    val token: String,
+    @SerialName("accessToken") val token: String,
     val user: UserInfo,
+    val expiresAt: String? = null,
 )
 
 @Serializable
