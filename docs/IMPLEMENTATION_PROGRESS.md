@@ -1,70 +1,71 @@
 # Implementation Progress Tracker
 
-## Context Management
-- Autocompact disabled - must manually manage context
-- Compact when approaching 180k tokens
-- Write all necessary info here before compacting
+## Status: ALL STORIES IMPLEMENTED
 
-## Project Overview
-- Android Kotlin + Jetpack Compose app
-- Health Connect integration (steps, calories, exercise, sleep)
-- Syncs to Momentum API via POST /health-sync
-- Background sync via WorkManager
-- 5 stories to implement
+## Commits
+1. `79f871a` - feat: implement full Android companion app (Stories 1.1-1.5) - 44 files, 3346 lines
+2. `58751e0` - test: add unit tests and README - 5 files, 1179 lines
 
-## Versions (libs.versions.toml - UPDATED by linter)
-- AGP: 8.13.0, Kotlin: 2.3.0, KSP: 2.3.0
-- Compose BOM: 2026.01.01, Hilt: 2.55
-- OkHttp: 5.0.0-alpha.14, Serialization: 1.8.1
-- Health Connect: 1.1.0-alpha12
-- JUnit5: 5.11.4, MockK: 1.13.16, Coroutines: 1.10.1
+## Versions (libs.versions.toml - auto-updated by linter)
+- AGP: 8.13.0, Kotlin: 2.3.0, KSP: 2.3.5
+- Compose BOM: 2026.01.01, Hilt: 2.59.1
+- OkHttp: 5.3.2, kotlinx.serialization: 1.10.0
+- Health Connect: 1.1.0 (stable!)
+- WorkManager: 2.11.1, Lifecycle: 2.10.0
+- JUnit5: 5.14.2, MockK: 1.14.9, Coroutines: 1.10.2
 
-## Completed Tasks
+## All Tasks Completed
 - [x] Task 1: Project infrastructure (Gradle, manifest, resources)
-  - settings.gradle.kts, build.gradle.kts (root + app)
-  - gradle/libs.versions.toml (updated by linter with newer versions)
-  - gradle.properties, .gitignore, proguard-rules.pro
-  - AndroidManifest.xml (permissions, HC intent filters, WorkManager init)
-  - res/values/strings.xml, colors.xml, themes.xml
-  - res/xml/health_permissions.xml
+- [x] Task 2: Data layer (AuthModels, HealthSyncRequest/Response, ApiService, AuthInterceptor, AppPreferences)
+- [x] Task 3: Health Connect layer (HealthConnectReader, HealthConnectMapper)
+- [x] Task 4: Sync layer (SyncWorker, SyncScheduler, SyncLogEntry, SyncLogRepository)
+- [x] Task 5: DI modules (AppModule, NetworkModule, HealthModule)
+- [x] Task 6: UI layer (all 5 screens, 3 ViewModels, theme, navigation)
+- [x] Task 7: Git commit #1
+- [x] Task 8: Unit tests (HealthConnectMapperTest, SetupViewModelTest, DashboardViewModelTest, SettingsViewModelTest)
+- [x] Task 9: README.md
 
-## In Progress (Background Agents)
-- [ ] Task 2: Data layer (AuthModels, HealthSyncRequest/Response, ApiService, AuthInterceptor, AppPreferences)
-- [ ] Task 3: Health Connect layer (HealthConnectReader, HealthConnectMapper)
-- [ ] Task 4: Sync layer + DI (SyncWorker, SyncScheduler, SyncLogEntry/Repository, AppModule, NetworkModule, HealthModule)
+## Files Created (49 total)
+### Build Configuration (7)
+- settings.gradle.kts, build.gradle.kts (root + app)
+- gradle/libs.versions.toml, gradle.properties, .gitignore
+- app/proguard-rules.pro, gradle/wrapper/gradle-wrapper.properties
 
-## Not Started Yet
-- [ ] Task 5: DI modules (being done in Task 4 agent)
-- [ ] Task 6: UI layer - ALL screens and components:
-  - MomentumApp.kt (@HiltAndroidApp + WorkManager config)
-  - MainActivity.kt (single activity, Compose host)
-  - ui/theme/Color.kt, Theme.kt, Type.kt
-  - ui/setup/SetupScreen.kt, SetupViewModel.kt
-  - ui/permissions/PermissionsScreen.kt, PermissionsViewModel.kt, PermissionsRationaleActivity.kt
-  - ui/dashboard/DashboardScreen.kt, DashboardViewModel.kt
-  - ui/dashboard/components/MetricProgressBar.kt
-  - ui/components/ActivityListItem.kt, SyncStatusCard.kt
-  - ui/settings/SettingsScreen.kt, SettingsViewModel.kt, LogsScreen.kt
-  - navigation/NavGraph.kt
-- [ ] Task 7: Git commit
+### Source Code (30 Kotlin files)
+- MomentumApp.kt, MainActivity.kt
+- data/api/: MomentumApiService.kt, AuthInterceptor.kt
+- data/api/models/: AuthModels.kt, HealthSyncRequest.kt, HealthSyncResponse.kt
+- data/healthconnect/: HealthConnectReader.kt, HealthConnectMapper.kt
+- data/preferences/: AppPreferences.kt
+- data/log/: SyncLogEntry.kt, SyncLogRepository.kt
+- sync/: SyncWorker.kt, SyncScheduler.kt
+- di/: AppModule.kt, NetworkModule.kt, HealthModule.kt
+- ui/theme/: Color.kt, Type.kt, Theme.kt
+- ui/setup/: SetupScreen.kt, SetupViewModel.kt
+- ui/permissions/: PermissionsScreen.kt, PermissionsRationaleActivity.kt
+- ui/dashboard/: DashboardScreen.kt, DashboardViewModel.kt
+- ui/settings/: SettingsScreen.kt, SettingsViewModel.kt, LogsScreen.kt
+- navigation/: NavGraph.kt
 
-## Key Architecture Notes
-- Package: com.momentum.companion
-- MVVM + Repository pattern
-- Hilt DI with @HiltAndroidApp, @HiltWorker
-- WorkManager for background sync (min 15min interval)
-- EncryptedSharedPreferences for credentials
-- Retrofit + kotlinx.serialization for API calls
-- Health Connect SDK for reading health data
-- Dark theme matching Momentum web (background #0A0A0A, accent orange #F97316)
+### Tests (4 files)
+- HealthConnectMapperTest.kt, SetupViewModelTest.kt
+- DashboardViewModelTest.kt, SettingsViewModelTest.kt
 
-## API Endpoints Used
-- POST /auth/login -> LoginResponse(token, user)
-- POST /health-sync -> HealthSyncResponse(synced, device)
-- GET /health-sync/status -> SyncStatusResponse(configured, lastSync, trackables)
+### Resources (5)
+- AndroidManifest.xml, strings.xml, colors.xml, themes.xml, health_permissions.xml
 
-## Navigation Flow
-Setup -> Permissions -> Dashboard <-> Settings -> Logs
+### Documentation (1)
+- README.md
 
-## File Structure Reference
-See docs/architecture/source-tree.md for complete structure
+## What's Needed to Build
+1. Install Android Studio (Ladybug 2024.2+)
+2. Open the project in Android Studio
+3. Let Gradle sync dependencies
+4. Build: `./gradlew assembleDebug`
+5. Install on Android 14+ device with Health Connect
+
+## Known Limitations
+- No gradlew/gradlew.bat binaries (Android Studio generates them)
+- No launcher icon (uses default Android icon)
+- No instrumented/UI tests
+- Retrofit base URL is set at DI singleton scope (requires app restart to change server)
