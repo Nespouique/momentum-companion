@@ -24,7 +24,7 @@ import java.time.ZoneId
 class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val healthConnectReader: HealthConnectReader,
+    private val healthConnectReader: HealthConnectReader?,
     private val apiService: MomentumApiService,
     private val preferences: AppPreferences,
     private val syncLogRepository: SyncLogRepository,
@@ -39,7 +39,21 @@ class SyncWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        // 2. Ensure valid token
+        // 2. Check Health Connect availability
+        if (healthConnectReader == null) {
+            Log.w(TAG, "Health Connect not available, skipping sync")
+            syncLogRepository.log(
+                SyncLogEntry(
+                    timestamp = System.currentTimeMillis(),
+                    type = SYNC_TYPE_PERIODIC,
+                    status = STATUS_ERROR,
+                    message = "Health Connect not available on this device",
+                ),
+            )
+            return Result.failure()
+        }
+
+        // 3. Ensure valid token
         val token = ensureValidToken()
         if (token == null) {
             syncLogRepository.log(
@@ -53,7 +67,7 @@ class SyncWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        // 3. Determine date range
+        // 4. Determine date range
         val lastSync = preferences.lastSyncTimestamp
         val startDate = if (lastSync > 0) {
             Instant.ofEpochMilli(lastSync)
@@ -65,13 +79,13 @@ class SyncWorker @AssistedInject constructor(
         val endDate = LocalDate.now()
 
         return try {
-            // 4. Read Health Connect data
+            // 5. Read Health Connect data
             val steps = healthConnectReader.readSteps(startDate, endDate)
             val calories = healthConnectReader.readActiveCalories(startDate, endDate)
             val exercises = healthConnectReader.readExerciseSessions(startDate, endDate)
             val sleep = healthConnectReader.readSleepSessions(startDate, endDate)
 
-            // 5. Build request payload
+            // 6. Build request payload
             val dailyMetrics = HealthConnectMapper.buildDailyMetrics(
                 steps, calories, exercises, startDate, endDate,
             )
@@ -86,7 +100,7 @@ class SyncWorker @AssistedInject constructor(
                 sleepSessions = sleepRecords,
             )
 
-            // 6. Send to API
+            // 7. Send to API
             val response = apiService.postHealthSync("Bearer $token", request)
             preferences.lastSyncTimestamp = System.currentTimeMillis()
 
