@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Momentum Companion</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">Momentum Companion</string>
+    <string name="setup_server_url">URL du serveur Momentum</string>
+    <string name="setup_server_url_hint">https://momentum.local:3001</string>
+    <string name="setup_email">Email</string>
+    <string name="setup_email_hint">user@example.com</string>
+    <string name="setup_password">Mot de passe</string>
+    <string name="setup_test_connection">Tester la connexion</string>
+    <string name="setup_next">Suivant</string>
+    <string name="setup_self_signed_certs">Accepter les certificats self-signed</string>
+    <string name="setup_connection_success">Connexion reussie !</string>
+    <string name="setup_connection_error">Erreur de connexion</string>
+
+    <!-- Permissions Screen -->
+    <string name="permissions_title">Permissions sante</string>
+    <string name="permissions_description">Momentum Companion a besoin d\'acceder a vos donnees de sante pour synchroniser :</string>
+    <string name="permissions_steps">Pas</string>
+    <string name="permissions_calories">Calories actives</string>
+    <string name="permissions_exercise">Sessions d\'exercice</string>
+    <string name="permissions_sleep">Sommeil</string>
+    <string name="permissions_privacy">Les donnees sont envoyees uniquement a votre serveur Momentum self-hosted.</string>
+    <string name="permissions_authorize">Autoriser l\'acces sante</string>
+    <string name="permissions_hc_not_available">Health Connect n\'est pas disponible sur cet appareil.</string>
+    <string name="permissions_hc_needs_update">Health Connect doit etre mis a jour.</string>
+    <string name="permissions_install_hc">Installer Health Connect</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dashboard_title">Momentum Companion</string>
+    <string name="dashboard_connected">Connecte a %s</string>
+    <string name="dashboard_last_sync">Dernier sync : %s</string>
+    <string name="dashboard_today">Aujourd\'hui</string>
+    <string name="dashboard_sync_now">Synchroniser maintenant</string>
+    <string name="dashboard_syncing">Synchronisation en cours…</string>
+    <string name="dashboard_activities_title">Activites aujourd\'hui :</string>
+    <string name="dashboard_no_activities">Aucune activite aujourd\'hui</string>
+    <string name="dashboard_steps_unit">pas</string>
+    <string name="dashboard_minutes_unit">min</string>
+    <string name="dashboard_calories_unit">kcal</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Parametres</string>
+    <string name="settings_server">Serveur</string>
+    <string name="settings_modify">Modifier</string>
+    <string name="settings_account">Compte</string>
+    <string name="settings_disconnect">Deconnecter</string>
+    <string name="settings_sync_frequency">Frequence de sync</string>
+    <string name="settings_freq_15">15 minutes</string>
+    <string name="settings_freq_30">30 minutes</string>
+    <string name="settings_freq_60">1 heure</string>
+    <string name="settings_freq_120">2 heures</string>
+    <string name="settings_initial_import">Sync initial</string>
+    <string name="settings_import_description">Importer les 30 derniers jours</string>
+    <string name="settings_import_button">Lancer import initial</string>
+    <string name="settings_importing">%d / 30 jours importes</string>
+    <string name="settings_debug">Debug</string>
+    <string name="settings_view_logs">Voir les logs</string>
+
+    <!-- Logs Screen -->
+    <string name="logs_title">Logs de synchronisation</string>
+
+    <!-- Exercise Types -->
+    <string name="exercise_walking">Marche</string>
+    <string name="exercise_running">Course</string>
+    <string name="exercise_biking">Velo</string>
+    <string name="exercise_swimming">Natation</string>
+    <string name="exercise_weightlifting">Musculation</string>
+    <string name="exercise_yoga">Yoga</string>
+    <string name="exercise_hiking">Randonnee</string>
+    <string name="exercise_elliptical">Elliptique</string>
+    <string name="exercise_stair_climbing">Escaliers</string>
+    <string name="exercise_other">Autre</string>
+
+    <!-- Sync Status -->
+    <string name="sync_never">Jamais</string>
+    <string name="sync_just_now">A l\'instant</string>
+    <string name="sync_minutes_ago">il y a %d min</string>
+    <string name="sync_hours_ago">il y a %dh</string>
+    <string name="sync_days_ago">il y a %dj</string>
+</resources>
