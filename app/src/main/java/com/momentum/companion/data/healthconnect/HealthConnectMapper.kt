@@ -10,44 +10,78 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 
+data class UserProfile(
+    val stepsPerMin: Int = 100,
+    val weightKg: Float = 70f,
+    val heightCm: Int = 170,
+    val age: Int = 30,
+    val isMale: Boolean = true,
+)
+
 object HealthConnectMapper {
 
+    /**
+     * Build daily metrics with estimation of passive active minutes and calories.
+     *
+     * Samsung Health only syncs exercise calories (TotalCaloriesBurned) and exercise
+     * sessions, but NOT passive active calories or active minutes from the pedometer.
+     *
+     * Estimation logic:
+     * 1. Deduct estimated exercise steps from total steps to get passive steps
+     * 2. Passive active minutes = passive steps / steps per minute
+     * 3. Passive active calories = passive minutes * MET-based walking calorie rate
+     * 4. Totals = passive + exercise
+     *
+     * Walking calorie rate uses MET formula:
+     *   active kcal/min = ((MET - 1) * 3.5 * weightKg) / 200
+     *   with MET = 3.0 for casual walking
+     */
     fun buildDailyMetrics(
         steps: Map<LocalDate, Long>,
-        calories: Map<LocalDate, Double>,
-        exercises: List<ExerciseSessionRecord>,
+        exerciseSessions: List<ExerciseSessionRecord>,
+        exerciseCalories: Map<LocalDate, Double>,
+        userProfile: UserProfile,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<DailyMetric> {
         val zone = ZoneId.systemDefault()
-
-        val activeMinutesByDay = exercises.groupBy { session ->
-            session.startTime.atZone(zone).toLocalDate()
-        }.mapValues { (_, sessions) ->
-            sessions.sumOf { session ->
-                Duration.between(session.startTime, session.endTime).toMinutes()
-            }
-        }
-
         val dates = generateSequence(startDate) { it.plusDays(1) }
             .takeWhile { !it.isAfter(endDate) }
             .toList()
 
-        return dates.mapNotNull { date ->
-            val daySteps = steps[date]
-            val dayCals = calories[date]
-            val dayMins = activeMinutesByDay[date]
+        val exercisesByDate = exerciseSessions.groupBy { session ->
+            session.startTime.atZone(zone).toLocalDate()
+        }
 
-            if (daySteps != null || dayCals != null || dayMins != null) {
-                DailyMetric(
-                    date = date.toString(),
-                    steps = daySteps?.toInt(),
-                    activeCalories = dayCals?.toInt(),
-                    activeMinutes = dayMins?.toInt(),
-                )
-            } else {
-                null
+        // MET 3.0 for walking — full metabolic cost during activity
+        // (Samsung counts total kcal during movement, not excess above resting)
+        // Formula: kcal/min = (MET * 3.5 * weightKg) / 200
+        val calPerMin = (3.0 * 3.5 * userProfile.weightKg) / 200.0
+
+        return dates.mapNotNull { date ->
+            val daySteps = steps[date] ?: 0L
+            val dayExercises = exercisesByDate[date] ?: emptyList()
+            val dayExerciseMinutes = dayExercises.sumOf {
+                Duration.between(it.startTime, it.endTime).toMinutes()
             }
+            val dayExerciseCalories = exerciseCalories[date] ?: 0.0
+
+            if (daySteps == 0L && dayExercises.isEmpty()) return@mapNotNull null
+
+            // Deduct estimated exercise steps from total
+            val estimatedExerciseSteps = dayExerciseMinutes * userProfile.stepsPerMin
+            val passiveSteps = maxOf(0L, daySteps - estimatedExerciseSteps)
+
+            // Estimate passive active minutes and calories (float division)
+            val passiveMinutes = passiveSteps.toDouble() / userProfile.stepsPerMin
+            val passiveCalories = passiveMinutes * calPerMin
+
+            DailyMetric(
+                date = date.toString(),
+                steps = daySteps.toInt(),
+                activeCalories = (passiveCalories + dayExerciseCalories).toInt(),
+                activeMinutes = (passiveMinutes + dayExerciseMinutes).toInt(),
+            )
         }
     }
 

@@ -7,6 +7,7 @@ import com.momentum.companion.data.api.MomentumApiService
 import com.momentum.companion.data.api.models.HealthSyncRequest
 import com.momentum.companion.data.healthconnect.HealthConnectMapper
 import com.momentum.companion.data.healthconnect.HealthConnectReader
+import com.momentum.companion.data.healthconnect.UserProfile
 import com.momentum.companion.data.log.SyncLogEntry
 import com.momentum.companion.data.log.SyncLogRepository
 import com.momentum.companion.data.preferences.AppPreferences
@@ -24,6 +25,11 @@ data class SettingsUiState(
     val serverUrl: String = "",
     val email: String = "",
     val syncFrequencyMinutes: Int = 15,
+    val stepsPerMin: Int = 100,
+    val weightKg: Float = 70f,
+    val heightCm: Int = 170,
+    val age: Int = 30,
+    val isMale: Boolean = true,
     val isImporting: Boolean = false,
     val importProgress: Float = 0f,
     val importDaysCompleted: Int = 0,
@@ -67,6 +73,11 @@ class SettingsViewModel @Inject constructor(
             serverUrl = preferences.serverUrl ?: "",
             email = preferences.email ?: "",
             syncFrequencyMinutes = preferences.syncFrequencyMinutes,
+            stepsPerMin = preferences.stepsPerMin,
+            weightKg = preferences.weightKg,
+            heightCm = preferences.heightCm,
+            age = preferences.age,
+            isMale = preferences.isMale,
         )
     }
 
@@ -82,6 +93,31 @@ class SettingsViewModel @Inject constructor(
             syncScheduler.schedulePeriodic(minutes)
             _uiState.value = _uiState.value.copy(syncFrequencyMinutes = minutes)
         }
+    }
+
+    fun updateStepsPerMin(value: Int) {
+        preferences.stepsPerMin = value
+        _uiState.value = _uiState.value.copy(stepsPerMin = value)
+    }
+
+    fun updateWeightKg(value: Float) {
+        preferences.weightKg = value
+        _uiState.value = _uiState.value.copy(weightKg = value)
+    }
+
+    fun updateHeightCm(value: Int) {
+        preferences.heightCm = value
+        _uiState.value = _uiState.value.copy(heightCm = value)
+    }
+
+    fun updateAge(value: Int) {
+        preferences.age = value
+        _uiState.value = _uiState.value.copy(age = value)
+    }
+
+    fun updateIsMale(value: Boolean) {
+        preferences.isMale = value
+        _uiState.value = _uiState.value.copy(isMale = value)
     }
 
     fun startInitialImport() {
@@ -109,17 +145,24 @@ class SettingsViewModel @Inject constructor(
                 val steps = reader.readSteps(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.3f)
 
-                val calories = reader.readActiveCalories(startDate, endDate)
+                val exercises = reader.readExerciseSessions(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.5f)
 
-                val exercises = reader.readExerciseSessions(startDate, endDate)
+                val exerciseCalories = reader.readTotalCaloriesBurned(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.6f)
 
                 val sleep = reader.readSleepSessions(startDate, endDate)
                 _uiState.value = _uiState.value.copy(importProgress = 0.7f)
 
+                val userProfile = UserProfile(
+                    stepsPerMin = preferences.stepsPerMin,
+                    weightKg = preferences.weightKg,
+                    heightCm = preferences.heightCm,
+                    age = preferences.age,
+                    isMale = preferences.isMale,
+                )
                 val dailyMetrics = HealthConnectMapper.buildDailyMetrics(
-                    steps, calories, exercises, startDate, endDate,
+                    steps, exercises, exerciseCalories, userProfile, startDate, endDate,
                 )
                 val activities = HealthConnectMapper.mapExerciseSessions(exercises)
                 val sleepRecords = HealthConnectMapper.mapSleepSessions(sleep)

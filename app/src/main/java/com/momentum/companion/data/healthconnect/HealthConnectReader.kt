@@ -1,57 +1,70 @@
 package com.momentum.companion.data.healthconnect
 
+import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import java.time.Duration
 import java.time.LocalDate
-import java.time.Period
 import java.time.ZoneId
 
 class HealthConnectReader(private val client: HealthConnectClient) {
 
     /**
-     * Aggregate steps per day over a date range.
+     * Filter out records from ignored sources (e.g. Google Fit which duplicates Samsung data).
+     */
+    private fun <T : androidx.health.connect.client.records.Record> List<T>.filterSource(): List<T> {
+        return filter { it.metadata.dataOrigin.packageName !in IGNORED_PACKAGES }
+    }
+
+    /**
+     * Read raw step records and sum counts per day.
+     * Uses raw records instead of aggregateGroupByPeriod because Samsung Health
+     * writes full-day StepsRecord entries that return 0 from aggregation.
      */
     suspend fun readSteps(start: LocalDate, end: LocalDate): Map<LocalDate, Long> {
-        val result = client.aggregateGroupByPeriod(
-            AggregateGroupByPeriodRequest(
-                metrics = setOf(StepsRecord.COUNT_TOTAL),
+        val zone = ZoneId.systemDefault()
+        val response = client.readRecords(
+            ReadRecordsRequest(
+                recordType = StepsRecord::class,
                 timeRangeFilter = TimeRangeFilter.between(
-                    start.atStartOfDay(),
-                    end.plusDays(1).atStartOfDay(),
+                    start.atStartOfDay(zone).toInstant(),
+                    end.plusDays(1).atStartOfDay(zone).toInstant(),
                 ),
-                timeRangeSlicer = Period.ofDays(1),
             ),
         )
-        return result.associate { bucket ->
-            bucket.startTime.toLocalDate() to
-                (bucket.result[StepsRecord.COUNT_TOTAL] ?: 0L)
+        return response.records.filterSource().groupBy { record ->
+            record.startTime.atZone(zone).toLocalDate()
+        }.mapValues { (_, records) ->
+            records.sumOf { it.count }
         }
     }
 
     /**
-     * Aggregate active calories burned per day (kcal).
+     * Read raw TotalCaloriesBurned records and sum per day (kcal).
+     * Filtered to Samsung Health only (Google Fit writes full-day basal records
+     * that would inflate the exercise-only total).
      */
-    suspend fun readActiveCalories(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
-        val result = client.aggregateGroupByPeriod(
-            AggregateGroupByPeriodRequest(
-                metrics = setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
+    suspend fun readTotalCaloriesBurned(start: LocalDate, end: LocalDate): Map<LocalDate, Double> {
+        val zone = ZoneId.systemDefault()
+        val response = client.readRecords(
+            ReadRecordsRequest(
+                recordType = TotalCaloriesBurnedRecord::class,
                 timeRangeFilter = TimeRangeFilter.between(
-                    start.atStartOfDay(),
-                    end.plusDays(1).atStartOfDay(),
+                    start.atStartOfDay(zone).toInstant(),
+                    end.plusDays(1).atStartOfDay(zone).toInstant(),
                 ),
-                timeRangeSlicer = Period.ofDays(1),
             ),
         )
-        return result.associate { bucket ->
-            bucket.startTime.toLocalDate() to
-                (bucket.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]
-                    ?.inKilocalories ?: 0.0)
+        return response.records.filterSource().groupBy { record ->
+            record.startTime.atZone(zone).toLocalDate()
+        }.mapValues { (_, records) ->
+            records.sumOf { it.energy.inKilocalories }
         }
     }
 
@@ -72,7 +85,7 @@ class HealthConnectReader(private val client: HealthConnectClient) {
                 ),
             ),
         )
-        return response.records
+        return response.records.filterSource()
     }
 
     /**
@@ -92,6 +105,77 @@ class HealthConnectReader(private val client: HealthConnectClient) {
                 ),
             ),
         )
-        return response.records
+        return response.records.filterSource()
+    }
+
+    /**
+     * Diagnostic: dump all raw Health Connect records for a given day.
+     */
+    suspend fun logRawData(date: LocalDate) {
+        val zone = ZoneId.systemDefault()
+        val startInstant = date.atStartOfDay(zone).toInstant()
+        val endInstant = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val timeRange = TimeRangeFilter.between(startInstant, endInstant)
+
+        // Raw StepsRecord entries
+        val stepsResponse = client.readRecords(
+            ReadRecordsRequest(recordType = StepsRecord::class, timeRangeFilter = timeRange),
+        )
+        Log.d(TAG, "=== RAW HEALTH CONNECT DATA for $date ===")
+        Log.d(TAG, "StepsRecord entries: ${stepsResponse.records.size}")
+        stepsResponse.records.forEachIndexed { i, r ->
+            val dur = Duration.between(r.startTime, r.endTime).toMinutes()
+            val rate = if (dur > 0) r.count / dur else 0
+            Log.d(TAG, "  Steps[$i]: ${r.count} steps, " +
+                "${r.startTime.atZone(zone).toLocalTime()}-${r.endTime.atZone(zone).toLocalTime()} " +
+                "(${dur}min, ${rate} steps/min, src=${r.metadata.dataOrigin.packageName})")
+        }
+
+        // Raw ActiveCaloriesBurnedRecord entries
+        val calResponse = client.readRecords(
+            ReadRecordsRequest(recordType = ActiveCaloriesBurnedRecord::class, timeRangeFilter = timeRange),
+        )
+        Log.d(TAG, "ActiveCaloriesBurnedRecord entries: ${calResponse.records.size}")
+        calResponse.records.forEachIndexed { i, r ->
+            Log.d(TAG, "  ActiveCal[$i]: ${r.energy.inKilocalories}kcal, " +
+                "${r.startTime.atZone(zone).toLocalTime()}-${r.endTime.atZone(zone).toLocalTime()} " +
+                "(src=${r.metadata.dataOrigin.packageName})")
+        }
+
+        // Raw TotalCaloriesBurnedRecord entries
+        try {
+            val totalCalResponse = client.readRecords(
+                ReadRecordsRequest(recordType = TotalCaloriesBurnedRecord::class, timeRangeFilter = timeRange),
+            )
+            Log.d(TAG, "TotalCaloriesBurnedRecord entries: ${totalCalResponse.records.size}")
+            totalCalResponse.records.forEachIndexed { i, r ->
+                Log.d(TAG, "  TotalCal[$i]: ${r.energy.inKilocalories}kcal, " +
+                    "${r.startTime.atZone(zone).toLocalTime()}-${r.endTime.atZone(zone).toLocalTime()} " +
+                    "(src=${r.metadata.dataOrigin.packageName})")
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "TotalCaloriesBurnedRecord: permission denied or unavailable")
+        }
+
+        // Raw ExerciseSessionRecord entries
+        val exResponse = client.readRecords(
+            ReadRecordsRequest(recordType = ExerciseSessionRecord::class, timeRangeFilter = timeRange),
+        )
+        Log.d(TAG, "ExerciseSessionRecord entries: ${exResponse.records.size}")
+        exResponse.records.forEachIndexed { i, r ->
+            val dur = Duration.between(r.startTime, r.endTime).toMinutes()
+            Log.d(TAG, "  Exercise[$i]: type=${r.exerciseType}, ${dur}min, " +
+                "${r.startTime.atZone(zone).toLocalTime()}-${r.endTime.atZone(zone).toLocalTime()} " +
+                "(src=${r.metadata.dataOrigin.packageName})")
+        }
+
+        Log.d(TAG, "=== END RAW DATA ===")
+    }
+
+    companion object {
+        private const val TAG = "HealthConnectReader"
+        private val IGNORED_PACKAGES = setOf(
+            "com.google.android.apps.fitness",
+        )
     }
 }

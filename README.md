@@ -185,6 +185,16 @@ All `/health-sync` endpoints require an `Authorization: Bearer <token>` header.
 }
 ```
 
+## Health Connect Data & Limitations
+
+Samsung Health ne synchronise qu'une partie de ses donnees vers Health Connect. Voir **[docs/health-connect-data-analysis.md](docs/health-connect-data-analysis.md)** pour l'analyse complete :
+
+- Quels types HC Samsung expose reellement (steps, exercices) vs ce qui manque (calories passives, minutes actives)
+- Impact sur la reconstruction des "3 rings" Samsung
+- Strategie d'estimation des minutes actives et calories a partir des pas
+
+Un ecran **HC Explorer** (Settings > Debug > Explorer Health Connect) permet d'inspecter les 40 types de records HC en temps reel.
+
 ## Development
 
 ### Run unit tests

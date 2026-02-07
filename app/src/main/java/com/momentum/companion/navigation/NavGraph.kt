@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.momentum.companion.ui.dashboard.DashboardScreen
+import com.momentum.companion.ui.hcexplorer.HCExplorerScreen
 import com.momentum.companion.ui.permissions.PermissionsScreen
 import com.momentum.companion.ui.settings.LogsScreen
 import com.momentum.companion.ui.settings.SettingsScreen
@@ -16,6 +17,7 @@ sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
     data object Settings : Screen("settings")
     data object Logs : Screen("logs")
+    data object HCExplorer : Screen("hc_explorer")
 }
 
 @Composable
@@ -64,11 +66,18 @@ fun MomentumNavGraph(
                     }
                 },
                 onViewLogs = { navController.navigate(Screen.Logs.route) },
+                onHCExplorer = { navController.navigate(Screen.HCExplorer.route) },
             )
         }
 
         composable(Screen.Logs.route) {
             LogsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Screen.HCExplorer.route) {
+            HCExplorerScreen(
                 onBack = { navController.popBackStack() },
             )
         }

@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,11 +34,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -45,6 +52,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onDisconnect: () -> Unit,
     onViewLogs: () -> Unit,
+    onHCExplorer: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -133,6 +141,125 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // Profile section
+            SettingsSection(title = "Profil") {
+                Text(
+                    text = "Utilise pour estimer les minutes actives et calories a partir des pas",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var stepsText by remember(uiState.stepsPerMin) {
+                    mutableStateOf(uiState.stepsPerMin.toString())
+                }
+                var ageText by remember(uiState.age) {
+                    mutableStateOf(uiState.age.toString())
+                }
+                var weightText by remember(uiState.weightKg) {
+                    mutableStateOf(uiState.weightKg.toInt().toString())
+                }
+                var heightText by remember(uiState.heightCm) {
+                    mutableStateOf(uiState.heightCm.toString())
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = stepsText,
+                        onValueChange = { v ->
+                            stepsText = v
+                            v.toIntOrNull()?.let { if (it in 50..200) viewModel.updateStepsPerMin(it) }
+                        },
+                        label = { Text("Pas/min") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = ageText,
+                        onValueChange = { v ->
+                            ageText = v
+                            v.toIntOrNull()?.let { if (it in 10..120) viewModel.updateAge(it) }
+                        },
+                        label = { Text("Age") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = weightText,
+                        onValueChange = { v ->
+                            weightText = v
+                            v.toIntOrNull()?.let { if (it in 30..250) viewModel.updateWeightKg(it.toFloat()) }
+                        },
+                        label = { Text("Poids (kg)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = heightText,
+                        onValueChange = { v ->
+                            heightText = v
+                            v.toIntOrNull()?.let { if (it in 100..250) viewModel.updateHeightCm(it) }
+                        },
+                        label = { Text("Taille (cm)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Sexe",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(48.dp),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .selectable(
+                                selected = uiState.isMale,
+                                onClick = { viewModel.updateIsMale(true) },
+                                role = Role.RadioButton,
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = uiState.isMale, onClick = null)
+                        Text("Homme", modifier = Modifier.padding(start = 4.dp))
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .selectable(
+                                selected = !uiState.isMale,
+                                onClick = { viewModel.updateIsMale(false) },
+                                role = Role.RadioButton,
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = !uiState.isMale, onClick = null)
+                        Text("Femme", modifier = Modifier.padding(start = 4.dp))
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
             // Initial import section
             SettingsSection(title = "Sync initial") {
                 Text(
@@ -186,6 +313,13 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("VOIR LES LOGS")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onHCExplorer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("EXPLORER HEALTH CONNECT")
                 }
             }
 

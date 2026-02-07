@@ -1,10 +1,12 @@
 package com.momentum.companion.ui.dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.momentum.companion.data.api.MomentumApiService
 import com.momentum.companion.data.healthconnect.HealthConnectMapper
 import com.momentum.companion.data.healthconnect.HealthConnectReader
+import com.momentum.companion.data.healthconnect.UserProfile
 import com.momentum.companion.data.preferences.AppPreferences
 import com.momentum.companion.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -119,17 +121,29 @@ class DashboardViewModel @Inject constructor(
             val zone = ZoneId.systemDefault()
             val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+            // Debug: dump raw Health Connect data
+            reader.logRawData(today)
+
             val steps = reader.readSteps(today, today)
-            val todaySteps = steps[today]?.toInt() ?: 0
-
-            val calories = reader.readActiveCalories(today, today)
-            val todayCalories = calories[today]?.toInt() ?: 0
-
             val exercises = reader.readExerciseSessions(today, today)
-            val todayMinutes = exercises.sumOf { session ->
-                Duration.between(session.startTime, session.endTime).toMinutes()
-            }.toInt()
+            val exerciseCalories = reader.readTotalCaloriesBurned(today, today)
 
+            val userProfile = UserProfile(
+                stepsPerMin = preferences.stepsPerMin,
+                weightKg = preferences.weightKg,
+                heightCm = preferences.heightCm,
+                age = preferences.age,
+                isMale = preferences.isMale,
+            )
+            val dailyMetrics = HealthConnectMapper.buildDailyMetrics(
+                steps, exercises, exerciseCalories, userProfile, today, today,
+            )
+            val todayMetrics = dailyMetrics.firstOrNull()
+            val todaySteps = todayMetrics?.steps ?: 0
+            val todayCalories = todayMetrics?.activeCalories ?: 0
+            val todayMinutes = todayMetrics?.activeMinutes ?: 0
+            Log.d(TAG, "Steps: $todaySteps, Calories: $todayCalories, Minutes: $todayMinutes")
+            Log.d(TAG, "Exercise sessions: ${exercises.size}")
             val activities = exercises.map { session ->
                 TodayActivity(
                     startTime = session.startTime.atZone(zone)
@@ -149,10 +163,15 @@ class DashboardViewModel @Inject constructor(
                 error = null,
             )
         } catch (e: Exception) {
+            Log.e(TAG, "Health Connect read error", e)
             _uiState.value = _uiState.value.copy(
                 error = "Erreur de lecture Health Connect: ${e.message}",
             )
         }
+    }
+
+    companion object {
+        private const val TAG = "DashboardVM"
     }
 
     private fun formatLastSync(timestamp: Long): String {

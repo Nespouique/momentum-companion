@@ -11,6 +11,7 @@ import com.momentum.companion.data.api.models.HealthSyncRequest
 import com.momentum.companion.data.api.models.LoginRequest
 import com.momentum.companion.data.healthconnect.HealthConnectMapper
 import com.momentum.companion.data.healthconnect.HealthConnectReader
+import com.momentum.companion.data.healthconnect.UserProfile
 import com.momentum.companion.data.log.SyncLogEntry
 import com.momentum.companion.data.log.SyncLogRepository
 import com.momentum.companion.data.preferences.AppPreferences
@@ -81,13 +82,20 @@ class SyncWorker @AssistedInject constructor(
         return try {
             // 5. Read Health Connect data
             val steps = healthConnectReader.readSteps(startDate, endDate)
-            val calories = healthConnectReader.readActiveCalories(startDate, endDate)
             val exercises = healthConnectReader.readExerciseSessions(startDate, endDate)
+            val exerciseCalories = healthConnectReader.readTotalCaloriesBurned(startDate, endDate)
             val sleep = healthConnectReader.readSleepSessions(startDate, endDate)
 
-            // 6. Build request payload
+            // 6. Build request payload with estimation
+            val userProfile = UserProfile(
+                stepsPerMin = preferences.stepsPerMin,
+                weightKg = preferences.weightKg,
+                heightCm = preferences.heightCm,
+                age = preferences.age,
+                isMale = preferences.isMale,
+            )
             val dailyMetrics = HealthConnectMapper.buildDailyMetrics(
-                steps, calories, exercises, startDate, endDate,
+                steps, exercises, exerciseCalories, userProfile, startDate, endDate,
             )
             val activities = HealthConnectMapper.mapExerciseSessions(exercises)
             val sleepRecords = HealthConnectMapper.mapSleepSessions(sleep)

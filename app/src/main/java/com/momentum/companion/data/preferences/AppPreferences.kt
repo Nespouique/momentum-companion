@@ -47,6 +47,26 @@ class AppPreferences(context: Context) {
         get() = prefs.getInt(KEY_SYNC_FREQUENCY, DEFAULT_SYNC_FREQUENCY)
         set(value) = prefs.edit().putInt(KEY_SYNC_FREQUENCY, value).apply()
 
+    var stepsPerMin: Int
+        get() = prefs.getInt(KEY_STEPS_PER_MIN, DEFAULT_STEPS_PER_MIN)
+        set(value) = prefs.edit().putInt(KEY_STEPS_PER_MIN, value).apply()
+
+    var weightKg: Float
+        get() = prefs.getFloat(KEY_WEIGHT_KG, DEFAULT_WEIGHT_KG)
+        set(value) = prefs.edit().putFloat(KEY_WEIGHT_KG, value).apply()
+
+    var heightCm: Int
+        get() = prefs.getInt(KEY_HEIGHT_CM, DEFAULT_HEIGHT_CM)
+        set(value) = prefs.edit().putInt(KEY_HEIGHT_CM, value).apply()
+
+    var age: Int
+        get() = prefs.getInt(KEY_AGE, DEFAULT_AGE)
+        set(value) = prefs.edit().putInt(KEY_AGE, value).apply()
+
+    var isMale: Boolean
+        get() = prefs.getBoolean(KEY_IS_MALE, true)
+        set(value) = prefs.edit().putBoolean(KEY_IS_MALE, value).apply()
+
     val isConfigured: Boolean
         get() = serverUrl != null && jwtToken != null
 
@@ -63,5 +83,14 @@ class AppPreferences(context: Context) {
         private const val KEY_LAST_SYNC = "last_sync_timestamp"
         private const val KEY_SYNC_FREQUENCY = "sync_frequency_minutes"
         private const val DEFAULT_SYNC_FREQUENCY = 15
+        private const val KEY_STEPS_PER_MIN = "steps_per_min"
+        private const val DEFAULT_STEPS_PER_MIN = 100
+        private const val KEY_WEIGHT_KG = "weight_kg"
+        private const val DEFAULT_WEIGHT_KG = 70f
+        private const val KEY_HEIGHT_CM = "height_cm"
+        private const val DEFAULT_HEIGHT_CM = 170
+        private const val KEY_AGE = "age"
+        private const val DEFAULT_AGE = 30
+        private const val KEY_IS_MALE = "is_male"
     }
 }
