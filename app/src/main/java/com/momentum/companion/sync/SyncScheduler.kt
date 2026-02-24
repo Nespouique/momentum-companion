@@ -18,7 +18,6 @@ class SyncScheduler(private val context: Context) {
     fun schedulePeriodic(intervalMinutes: Int = DEFAULT_INTERVAL) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
-            .setRequiresBatteryNotLow(true)
             .build()
 
         val workRequest = PeriodicWorkRequestBuilder<SyncWorker>(

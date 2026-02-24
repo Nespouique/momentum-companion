@@ -1,6 +1,8 @@
 package com.momentum.companion.ui.setup
 
-import androidx.compose.foundation.layout.Arrangement
+import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,10 +32,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.content.getSystemService
 
 @Composable
 fun SetupScreen(
@@ -42,6 +46,7 @@ fun SetupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(uiState.connectionTestResult) {
         when (val result = uiState.connectionTestResult) {
@@ -149,6 +154,18 @@ fun SetupScreen(
             Button(
                 onClick = {
                     viewModel.completeSetup()
+
+                    // Request battery optimization exemption so WorkManager can run reliably
+                    // in background without being deferred by Doze or App Standby.
+                    val pm = context.getSystemService<PowerManager>()
+                    if (pm != null && !pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                        val intent = Intent(
+                            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                        context.startActivity(intent)
+                    }
+
                     onSetupComplete()
                 },
                 enabled = uiState.isConnectionSuccessful,
@@ -159,3 +176,4 @@ fun SetupScreen(
         }
     }
 }
+

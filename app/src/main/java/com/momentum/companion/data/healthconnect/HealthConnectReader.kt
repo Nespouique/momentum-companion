@@ -23,9 +23,36 @@ class HealthConnectReader(private val client: HealthConnectClient) {
     }
 
     /**
+     * From a list of step records, keep only the preferred source per day to avoid
+     * double-counting. Samsung Health writes a single full-day record; the Android
+     * sensor platform writes the same steps as many short records in parallel.
+     *
+     * Priority: PREFERRED_STEP_SOURCES in order. If none present for a given day,
+     * fall back to all non-ignored sources.
+     */
+    private fun List<StepsRecord>.deduplicateStepsBySource(): List<StepsRecord> {
+        val zone = ZoneId.systemDefault()
+        val byDate = groupBy { it.startTime.atZone(zone).toLocalDate() }
+        return byDate.flatMap { (_, dayRecords) ->
+            val preferredSource = PREFERRED_STEP_SOURCES.firstOrNull { source ->
+                dayRecords.any { it.metadata.dataOrigin.packageName == source }
+            }
+            if (preferredSource != null) {
+                dayRecords.filter { it.metadata.dataOrigin.packageName == preferredSource }
+            } else {
+                dayRecords
+            }
+        }
+    }
+
+    /**
      * Read raw step records and sum counts per day.
      * Uses raw records instead of aggregateGroupByPeriod because Samsung Health
      * writes full-day StepsRecord entries that return 0 from aggregation.
+     *
+     * Deduplication: when multiple sources overlap (e.g. Samsung Health + Android
+     * sensor platform write the same steps), only the highest-priority source is
+     * kept per day to prevent double-counting.
      */
     suspend fun readSteps(start: LocalDate, end: LocalDate): Map<LocalDate, Long> {
         val zone = ZoneId.systemDefault()
@@ -38,11 +65,14 @@ class HealthConnectReader(private val client: HealthConnectClient) {
                 ),
             ),
         )
-        return response.records.filterSource().groupBy { record ->
-            record.startTime.atZone(zone).toLocalDate()
-        }.mapValues { (_, records) ->
-            records.sumOf { it.count }
-        }
+        return response.records
+            .filterSource()
+            .deduplicateStepsBySource()
+            .groupBy { record ->
+                record.startTime.atZone(zone).toLocalDate()
+            }.mapValues { (_, records) ->
+                records.sumOf { it.count }
+            }
     }
 
     /**
@@ -176,6 +206,16 @@ class HealthConnectReader(private val client: HealthConnectClient) {
         private const val TAG = "HealthConnectReader"
         private val IGNORED_PACKAGES = setOf(
             "com.google.android.apps.fitness",
+        )
+
+        /**
+         * Ordered list of preferred step sources. When a day's records contain data
+         * from one of these sources, only that source is used (first match wins).
+         * This prevents double-counting when Samsung Health and the Android sensor
+         * platform both write overlapping StepsRecords for the same time window.
+         */
+        private val PREFERRED_STEP_SOURCES = listOf(
+            "com.sec.android.app.shealth",  // Samsung Health — authoritative source
         )
     }
 }
