@@ -195,6 +195,11 @@ Samsung Health ne synchronise qu'une partie de ses donnees vers Health Connect. 
 
 Un ecran **HC Explorer** (Settings > Debug > Explorer Health Connect) permet d'inspecter les 40 types de records HC en temps reel.
 
+Si besoin d'aller plus loin, il faudra utiliser le SDK Samsung directement :
+- https://developer.samsung.com/health/data/overview.html
+- https://developer.samsung.com/codelab/health/steps-data.html
+- https://developer.samsung.com/codelab/health/research-system.html
+
 ## Development
 
 ### Run unit tests
