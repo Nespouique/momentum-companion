@@ -7,7 +7,6 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.momentum.companion.data.api.MomentumApiService
-import com.momentum.companion.data.api.models.HealthSyncRequest
 import com.momentum.companion.data.api.models.LoginRequest
 import com.momentum.companion.data.healthconnect.HealthConnectMapper
 import com.momentum.companion.data.healthconnect.HealthConnectReader
@@ -100,16 +99,17 @@ class SyncWorker @AssistedInject constructor(
             val activities = HealthConnectMapper.mapExerciseSessions(exercises)
             val sleepRecords = HealthConnectMapper.mapSleepSessions(sleep)
 
-            val request = HealthSyncRequest(
+            // 7. Send to API (retry with smaller batches if payload too large)
+            val response = HealthSyncUploader.upload(
+                apiService = apiService,
+                token = token,
                 deviceName = Build.MODEL,
-                syncedAt = Instant.now().toString(),
                 dailyMetrics = dailyMetrics,
                 activities = activities,
                 sleepSessions = sleepRecords,
+                startDate = startDate,
+                endDate = endDate,
             )
-
-            // 7. Send to API
-            val response = apiService.postHealthSync("Bearer $token", request)
             preferences.lastSyncTimestamp = System.currentTimeMillis()
 
             syncLogRepository.log(
@@ -117,9 +117,9 @@ class SyncWorker @AssistedInject constructor(
                     timestamp = System.currentTimeMillis(),
                     type = SYNC_TYPE_PERIODIC,
                     status = STATUS_SUCCESS,
-                    message = "Synced ${response.synced.dailyMetrics} days, " +
-                        "${response.synced.activities} activities, " +
-                        "${response.synced.sleepSessions} sleep sessions",
+                    message = "Synced ${response.dailyMetrics} days, " +
+                        "${response.activities} activities, " +
+                        "${response.sleepSessions} sleep sessions",
                 ),
             )
 

@@ -4,7 +4,6 @@ import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.momentum.companion.data.api.MomentumApiService
-import com.momentum.companion.data.api.models.HealthSyncRequest
 import com.momentum.companion.data.healthconnect.HealthConnectMapper
 import com.momentum.companion.data.healthconnect.HealthConnectReader
 import com.momentum.companion.data.healthconnect.UserProfile
@@ -17,7 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
+import com.momentum.companion.sync.HealthSyncUploader
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -175,15 +174,16 @@ class SettingsViewModel @Inject constructor(
                 val token = preferences.jwtToken
                     ?: throw Exception("Non authentifie")
 
-                val request = HealthSyncRequest(
+                val response = HealthSyncUploader.upload(
+                    apiService = apiService,
+                    token = token,
                     deviceName = Build.MODEL,
-                    syncedAt = Instant.now().toString(),
                     dailyMetrics = dailyMetrics,
                     activities = activities,
                     sleepSessions = sleepRecords,
+                    startDate = startDate,
+                    endDate = endDate,
                 )
-
-                val response = apiService.postHealthSync("Bearer $token", request)
                 preferences.lastSyncTimestamp = System.currentTimeMillis()
 
                 _uiState.value = _uiState.value.copy(
@@ -196,11 +196,11 @@ class SettingsViewModel @Inject constructor(
                         timestamp = System.currentTimeMillis(),
                         type = "INITIAL_IMPORT",
                         status = "SUCCESS",
-                        message = "Imported ${response.synced.dailyMetrics} days, " +
-                            "${response.synced.activities} activities, " +
-                            "${response.synced.sleepSessions} sleep sessions",
-                    ),
-                )
+                    message = "Imported ${response.dailyMetrics} days, " +
+                        "${response.activities} activities, " +
+                        "${response.sleepSessions} sleep sessions",
+                ),
+            )
                 loadLogs()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
